@@ -76,12 +76,12 @@ export class Application {
     if (this.showHelpers) {
       this.setupHelpers();
     }
-    //this.setupRay();
+    this.setupRay();
     this.setupControls();
     this.setupGUI();
 
     this.addFloor(100, 100);
-    this.addCube(20);
+    //this.addCube(20);
     this.addCustomMesh();
 
     let loader = new MMDLoader();
@@ -89,11 +89,11 @@ export class Application {
     // Load a MMD model
     loader.load(
       // path to PMD/PMX file
-      '../mmd/miku.pmd',
+      require('../mmd/miku.pmd'),
       // called when the resource is loaded
-      function ( mesh ) {
+      ( mesh ) => {
 
-        scene.add( mesh );
+        this.scene.add( mesh );
 
       },
       // called when loading is in progresses
@@ -241,7 +241,7 @@ export class Application {
   }
 
   setupCamera() {
-    const fov = 75;
+    const fov = 90;
     const { clientWidth, clientHeight } = this.container;
     const aspect = clientWidth / clientHeight;
     const near = 0.1;

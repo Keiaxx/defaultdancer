@@ -55,6 +55,13 @@ const rules = [
       },
     },
   },
+  // rule for .pmd mmd files
+  {
+    test: /\.pmd$/,
+    use: {
+      loader: "file-loader"
+    },
+  },
   // rule for textures (images)
   {
     test: /\.(jpe?g|png)$/i,
