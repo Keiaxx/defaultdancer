@@ -1,6 +1,4 @@
 import * as THREE from "three";
-// TODO: OrbitControls import three.js on its own, so the webpack bundle includes three.js twice!
-import OrbitControls from "orbit-controls-es6";
 import { Interaction } from "three.interaction";
 
 import * as Detector from "../js/vendor/Detector";
@@ -10,10 +8,29 @@ import * as star from "../textures/star.png";
 import * as vertexShader from "../glsl/vertexShader.glsl";
 import * as fragmentShader from "../glsl/fragmentShader.glsl";
 
+
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import { OutlineEffect } from 'three/examples/jsm/effects/OutlineEffect.js';
+import { MMDLoader } from 'three/examples/jsm/loaders/MMDLoader.js';
+import { MMDAnimationHelper } from 'three/examples/jsm/animation/MMDAnimationHelper.js';
+
 const CAMERA_NAME = "Perspective Camera";
 const DIRECTIONAL_LIGHT_NAME = "Directional Light";
 const SPOT_LIGHT_NAME = "Spotlight";
 const CUSTOM_MESH_NAME = "Custom Mesh";
+
+var phongMaterials;
+var originalMaterials;
+function makePhongMaterials( materials ) {
+  var array = [];
+  for ( var i = 0, il = materials.length; i < il; i ++ ) {
+    var m = new THREE.MeshPhongMaterial();
+    m.copy( materials[ i ] );
+    m.needsUpdate = true;
+    array.push( m );
+  }
+  phongMaterials = array;
+}
 
 export class Application {
   constructor(opts = {}) {
@@ -25,6 +42,7 @@ export class Application {
     this.createTooltip();
     this.showHelpers = opts.showHelpers ? true : false;
     this.textureLoader = new THREE.TextureLoader();
+
 
     if (Detector.webgl) {
       this.bindEventHandlers();
@@ -58,7 +76,7 @@ export class Application {
     if (this.showHelpers) {
       this.setupHelpers();
     }
-    this.setupRay();
+    //this.setupRay();
     this.setupControls();
     this.setupGUI();
 
@@ -66,16 +84,42 @@ export class Application {
     this.addCube(20);
     this.addCustomMesh();
 
-    const particleSpecs = { spread: { x: 50, y: 100, z: 50 } };
-    this.addParticleSystem(300, 5, particleSpecs);
+    let loader = new MMDLoader();
 
-    const boxSpecs = {
-      depth: 20,
-      height: 10,
-      spread: { x: 20, y: 20, z: 50 },
-      width: 5,
-    };
-    this.addGroupObject(10, boxSpecs);
+    // Load a MMD model
+    loader.load(
+      // path to PMD/PMX file
+      '../mmd/miku.pmd',
+      // called when the resource is loaded
+      function ( mesh ) {
+
+        scene.add( mesh );
+
+      },
+      // called when loading is in progresses
+      function ( xhr ) {
+
+        console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
+
+      },
+      // called when loading has errors
+      function ( error ) {
+
+        console.log( 'An error happened' );
+
+      }
+    );
+
+    // const particleSpecs = { spread: { x: 50, y: 100, z: 50 } };
+    // this.addParticleSystem(300, 5, particleSpecs);
+
+    // const boxSpecs = {
+    //   depth: 20,
+    //   height: 10,
+    //   spread: { x: 20, y: 20, z: 50 },
+    //   width: 5,
+    // };
+    // this.addGroupObject(10, boxSpecs);
   }
 
   render() {
@@ -303,11 +347,49 @@ export class Application {
     this.controls.enabled = true;
     this.controls.maxDistance = 1500;
     this.controls.minDistance = 0;
-    this.controls.autoRotate = true;
+    this.controls.autoRotate = false;
   }
 
   setupGUI() {
     const gui = new DAT.GUI();
+
+    var api = {
+      'animation': true,
+      'gradient mapping': true,
+      'ik': true,
+      'outline': true,
+      'physics': true,
+      'show IK bones': false,
+      'show rigid bodies': false
+    };
+    gui.add( api, 'animation' ).onChange( function () {
+      helper.enable( 'animation', api[ 'animation' ] );
+    } );
+    gui.add( api, 'gradient mapping' ).onChange( function () {
+      if ( originalMaterials === undefined ) originalMaterials = mesh.material;
+      if ( phongMaterials === undefined ) makePhongMaterials( mesh.material );
+      if ( api[ 'gradient mapping' ] ) {
+        mesh.material = originalMaterials;
+      } else {
+        mesh.material = phongMaterials;
+      }
+    } );
+    gui.add( api, 'ik' ).onChange( function () {
+      helper.enable( 'ik', api[ 'ik' ] );
+    } );
+    gui.add( api, 'outline' ).onChange( function () {
+      effect.enabled = api[ 'outline' ];
+    } );
+    gui.add( api, 'physics' ).onChange( function () {
+      helper.enable( 'physics', api[ 'physics' ] );
+    } );
+    gui.add( api, 'show IK bones' ).onChange( function () {
+      ikHelper.visible = api[ 'show IK bones' ];
+    } );
+    gui.add( api, 'show rigid bodies' ).onChange( function () {
+      if ( physicsHelper !== undefined ) physicsHelper.visible = api[ 'show rigid bodies' ];
+    } );
+
     gui
       .add(this.camera.position, "x")
       .name("Camera X")
